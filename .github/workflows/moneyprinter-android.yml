@@ -1,4 +1,4 @@
-name: Build MoneyPrinter Local Android APK
+name: Build MoneyPrinter Safe APK
 
 on:
   push:
@@ -19,37 +19,25 @@ jobs:
           distribution: zulu
           java-version: "17"
 
-      - name: Prepare Android SDK + NDK
+      - name: Prepare Android SDK
         run: |
           SDKMANAGER=/usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager
           yes | "$SDKMANAGER" --licenses >/dev/null || true
-          "$SDKMANAGER" "platforms;android-36" "build-tools;36.0.0" "ndk;29.0.13113456" "cmake;3.31.6"
-
-      - name: Fetch and tune llama.cpp Android engine
-        run: |
-          git clone --depth 1 https://github.com/ggml-org/llama.cpp.git moneyprinter-android/llama-src
-          FILE=moneyprinter-android/llama-src/examples/llama.android/lib/src/main/cpp/ai_chat.cpp
-          sed -i 's/constexpr int   N_THREADS_MIN           = 2;/constexpr int   N_THREADS_MIN           = 2;/' "$FILE"
-          sed -i 's/constexpr int   N_THREADS_MAX           = 4;/constexpr int   N_THREADS_MAX           = 2;/' "$FILE"
-          sed -i 's/constexpr int   N_THREADS_HEADROOM      = 2;/constexpr int   N_THREADS_HEADROOM      = 0;/' "$FILE"
-          sed -i 's/constexpr int   DEFAULT_CONTEXT_SIZE    = 8192;/constexpr int   DEFAULT_CONTEXT_SIZE    = 1024;/' "$FILE"
-          sed -i 's/constexpr int   BATCH_SIZE              = 512;/constexpr int   BATCH_SIZE              = 128;/' "$FILE"
+          "$SDKMANAGER" "platforms;android-36" "build-tools;36.0.0"
 
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.13"
 
-      - name: Build local APK
+      - name: Build Safe APK
         working-directory: moneyprinter-android
-        env:
-          ANDROID_NDK_HOME: /usr/local/lib/android/sdk/ndk/29.0.13113456
         run: gradle :app:assembleDebug --stacktrace --no-daemon
 
       - name: Copy APK
-        run: cp moneyprinter-android/app/build/outputs/apk/debug/app-debug.apk MoneyPrinterTurbo-Local.apk
+        run: cp moneyprinter-android/app/build/outputs/apk/debug/app-debug.apk MoneyPrinterTurbo-Safe.apk
 
       - uses: actions/upload-artifact@v4
         with:
-          name: MoneyPrinterTurbo-Local-APK
-          path: MoneyPrinterTurbo-Local.apk
+          name: MoneyPrinterTurbo-Safe-APK
+          path: MoneyPrinterTurbo-Safe.apk
           if-no-files-found: error

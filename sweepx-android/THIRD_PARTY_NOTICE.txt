@@ -1,0 +1,7 @@
+SweepX Arabic Android Wrapper
+
+This project includes logic adapted from SweepX:
+https://github.com/eddiezhan/SweepX
+
+SweepX is MIT-licensed by its respective authors.
+The Android wrapper keeps the X session and imported archive data on-device.

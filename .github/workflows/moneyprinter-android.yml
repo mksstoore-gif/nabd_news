@@ -6,6 +6,11 @@ on:
     paths:
       - "moneyprinter-android/**"
       - ".github/workflows/moneyprinter-android.yml"
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - "moneyprinter-android/**"
+      - ".github/workflows/moneyprinter-android.yml"
   workflow_dispatch:
 
 jobs:

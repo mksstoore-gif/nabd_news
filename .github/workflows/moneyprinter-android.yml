@@ -25,9 +25,15 @@ jobs:
           yes | "$SDKMANAGER" --licenses >/dev/null || true
           "$SDKMANAGER" "platforms;android-36" "build-tools;36.0.0" "ndk;29.0.13113456" "cmake;3.31.6"
 
-      - name: Fetch llama.cpp Android engine
+      - name: Fetch and tune llama.cpp Android engine
         run: |
           git clone --depth 1 https://github.com/ggml-org/llama.cpp.git moneyprinter-android/llama-src
+          FILE=moneyprinter-android/llama-src/examples/llama.android/lib/src/main/cpp/ai_chat.cpp
+          sed -i 's/constexpr int   N_THREADS_MIN           = 2;/constexpr int   N_THREADS_MIN           = 2;/' "$FILE"
+          sed -i 's/constexpr int   N_THREADS_MAX           = 4;/constexpr int   N_THREADS_MAX           = 2;/' "$FILE"
+          sed -i 's/constexpr int   N_THREADS_HEADROOM      = 2;/constexpr int   N_THREADS_HEADROOM      = 0;/' "$FILE"
+          sed -i 's/constexpr int   DEFAULT_CONTEXT_SIZE    = 8192;/constexpr int   DEFAULT_CONTEXT_SIZE    = 1024;/' "$FILE"
+          sed -i 's/constexpr int   BATCH_SIZE              = 512;/constexpr int   BATCH_SIZE              = 128;/' "$FILE"
 
       - uses: gradle/actions/setup-gradle@v4
         with:

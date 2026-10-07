@@ -1,0 +1,10 @@
+{
+  "name":"OpenVideo — Text to Real Video",
+  "short_name":"OpenVideo",
+  "start_url":"./",
+  "display":"standalone",
+  "background_color":"#070b16",
+  "theme_color":"#0b1020",
+  "lang":"ar",
+  "dir":"rtl"
+}

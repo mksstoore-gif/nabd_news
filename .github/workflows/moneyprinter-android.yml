@@ -1,0 +1,35 @@
+name: Build MoneyPrinter Android APK
+
+on:
+  push:
+    branches: [ "moneyprinter-android" ]
+    paths:
+      - "moneyprinter-android/**"
+      - ".github/workflows/moneyprinter-android.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: android-actions/setup-android@v3
+      - name: Install Android SDK
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.10.2"
+      - name: Build debug APK
+        working-directory: moneyprinter-android
+        run: gradle :app:assembleDebug --stacktrace
+      - name: Copy APK
+        run: cp moneyprinter-android/app/build/outputs/apk/debug/app-debug.apk MoneyPrinterTurbo-Arabic.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MoneyPrinterTurbo-Arabic-APK
+          path: MoneyPrinterTurbo-Arabic.apk
+          if-no-files-found: error

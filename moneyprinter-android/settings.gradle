@@ -14,5 +14,3 @@ dependencyResolutionManagement {
 }
 rootProject.name = "MoneyPrinterAndroid"
 include(":app")
-include(":lib")
-project(":lib").projectDir = file("llama-src/examples/llama.android/lib")

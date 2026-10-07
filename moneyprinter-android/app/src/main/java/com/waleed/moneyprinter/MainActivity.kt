@@ -174,7 +174,7 @@ class MainActivity : Activity() {
                 }
 
                 progressBar.progress = 100
-                statusText.text = "تم إنشاء الفيديو وحفظه في Downloads/MoneyPrinter ✓"
+                statusText.text = "تم إنشاء الفيديو وحفظه في Movies/MoneyPrinter ✓"
                 Toast.makeText(this@MainActivity, "تم إنشاء الفيديو", Toast.LENGTH_LONG).show()
 
                 if (uri != null) {
@@ -389,7 +389,7 @@ class MainActivity : Activity() {
             put(MediaStore.Video.Media.MIME_TYPE, "video/mp4")
             put(
                 MediaStore.Video.Media.RELATIVE_PATH,
-                Environment.DIRECTORY_DOWNLOADS + "/MoneyPrinter"
+                Environment.DIRECTORY_MOVIES + "/MoneyPrinter"
             )
             put(MediaStore.Video.Media.IS_PENDING, 1)
         }

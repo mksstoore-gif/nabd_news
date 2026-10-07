@@ -267,8 +267,35 @@ class MainActivity : Activity() {
 
         scope.launch {
             try {
-                val script = if (supplied.isNotEmpty()) supplied else generateScript(topic)
+                val script = if (supplied.isNotEmpty()) {
+                    supplied
+                } else {
+                    if (!modelReady) {
+                        val candidate = when {
+                            defaultModel.exists() -> defaultModel
+                            File(modelDir, "custom-model.gguf").exists() -> File(modelDir, "custom-model.gguf")
+                            else -> null
+                        }
+                        if (candidate == null) throw IOException("النموذج المحلي غير موجود")
+                        jobStatus.text = "تحميل النموذج المحلي..."
+                        withContext(Dispatchers.IO) {
+                            engine.loadModel(candidate.absolutePath)
+                            engine.setSystemPrompt(
+                                "أنت كاتب فيديوهات عربية قصيرة. اكتب نصًا عربيًا واضحًا ومباشرًا مناسبًا لفيديو قصير. لا تستخدم عناوين أو نقاط أو Markdown، فقط النص المنطوق."
+                            )
+                        }
+                        modelReady = true
+                    }
+                    generateScript(topic)
+                }
                 scriptInput.setText(script)
+
+                // Free the native LLM memory before TTS / FFmpeg to avoid Android low-memory kills.
+                if (modelReady) {
+                    runCatching { withContext(Dispatchers.IO) { engine.cleanUp() } }
+                    modelReady = false
+                    modelStatus.text = "النموذج محفوظ على الجهاز — تم تفريغه من الذاكرة ✓"
+                }
 
                 progressBar.progress = 28
                 jobStatus.text = "إنشاء الصوت على الجهاز..."
@@ -349,11 +376,11 @@ class MainActivity : Activity() {
     }
 
     private fun makeCards(topic: String, script: String): List<File> {
-        val chunks = splitScript(script, 5)
+        val chunks = splitScript(script, 3)
         val (w, h) = when (aspectSpinner.selectedItemPosition) {
-            1 -> 1280 to 720
-            2 -> 720 to 720
-            else -> 720 to 1280
+            1 -> 768 to 432
+            2 -> 512 to 512
+            else -> 432 to 768
         }
 
         return chunks.mapIndexed { index, chunk ->
@@ -440,9 +467,9 @@ class MainActivity : Activity() {
         val per = duration / cards.size
 
         val (w, h) = when (aspectSpinner.selectedItemPosition) {
-            1 -> 1280 to 720
-            2 -> 720 to 720
-            else -> 720 to 1280
+            1 -> 768 to 432
+            2 -> 512 to 512
+            else -> 432 to 768
         }
 
         val inputs = StringBuilder()
@@ -460,7 +487,7 @@ class MainActivity : Activity() {
         val out = File(cacheDir, "MoneyPrinter-${System.currentTimeMillis()}.mp4")
         val cmd =
             "$inputs -filter_complex \"$filters\" -map \"[v]\" -map ${cards.size}:a -r 25 " +
-                "-c:v mpeg4 -q:v 5 -pix_fmt yuv420p -c:a aac -b:a 128k -shortest -y \"${out.absolutePath}\""
+                "-threads 2 -c:v mpeg4 -q:v 6 -pix_fmt yuv420p -c:a aac -b:a 96k -shortest -y \"${out.absolutePath}\""
 
         val session = FFmpegKit.execute(cmd)
         if (!ReturnCode.isSuccess(session.returnCode)) {

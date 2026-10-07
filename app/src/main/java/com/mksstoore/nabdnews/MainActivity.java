@@ -120,26 +120,27 @@ public class MainActivity extends Activity {
     private void injectXShareButton() {
         String script = """
                 (function(){
-                  if(window.__nabdNewsEnhancementsInstalled)return;
-                  window.__nabdNewsEnhancementsInstalled=true;
+                  if(window.__nabdNewsEnhancementsV15)return;
+                  window.__nabdNewsEnhancementsV15=true;
 
                   function classify(text){
                     var t=(text||'').toLowerCase();
+                    var isMap=/خريطة|خارطة|معارك|معركة|اشتباك|اشتباكات|جبهة|جبهات|سيطرة|مناطق السيطرة|مناطق النفوذ|خطوط التماس|تقدم القوات|تطورات ميدانية|عملية عسكرية/.test(t);
                     if(/عاجل|قصف|قصفوا|ضرب|استهدف|استهداف|غارة|غارات|انفجار|انفجارات|هجوم|هجمات|صاروخ|صواريخ|إطلاق نار|اطلاق نار/.test(t))
-                      return {emoji:'🔴',label:'عاجل',color:'#d90000',dark:'#650000',split:true};
+                      return {emoji:'🔴',label:'عاجل',map:isMap};
                     if(/حادث|حريق|اصطدام|سقوط|انهيار|إصابة|اصابة/.test(t))
-                      return {emoji:'⚠️',label:'حادث',color:'#ef6c00',dark:'#7a2f00',split:true};
-                    if(/معارك|معركة|اشتباك|اشتباكات|جبهة|جبهات|سيطرة|تقدم القوات|تطورات ميدانية/.test(t))
-                      return {emoji:'🟣',label:'تطورات',color:'#6f2dbd',dark:'#32105c',split:true};
+                      return {emoji:'⚠️',label:'حادث',map:false};
+                    if(isMap)
+                      return {emoji:'🟣',label:'تطورات',map:true};
                     if(/مباراة|هدف|الدوري|كأس|لاعب|فريق|نادي|الهلال|الاتحاد|النصر|الأهلي/.test(t))
-                      return {emoji:'⚽',label:'رياضة',color:'#075f3b',dark:'#043522',split:false};
+                      return {emoji:'⚽',label:'رياضة',map:false};
                     if(/اقتصاد|أسهم|سوق|بورصة|نفط|ذهب|ريال|دولار|شركة|أسعار/.test(t))
-                      return {emoji:'📊',label:'اقتصاد',color:'#0b5870',dark:'#062d3b',split:false};
+                      return {emoji:'📊',label:'اقتصاد',map:false};
                     if(/رسمي|بيان|وزارة|رئاسة|أعلن|اعلن|تصريح رسمي/.test(t))
-                      return {emoji:'🟢',label:'رسمي',color:'#087f5b',dark:'#034835',split:false};
+                      return {emoji:'🟢',label:'رسمي',map:false};
                     if(/غريب|طريف|نادر|مفاجئ|غير مألوف/.test(t))
-                      return {emoji:'👀',label:'غريب',color:'#b77900',dark:'#5a3a00',split:false};
-                    return {emoji:'🌍',label:'خبر',color:'#0b5870',dark:'#062d3b',split:false};
+                      return {emoji:'👀',label:'غريب',map:false};
+                    return {emoji:'🌍',label:'خبر',map:false};
                   }
 
                   function prefixed(text,kind){
@@ -150,81 +151,55 @@ public class MainActivity extends Activity {
                     return kind.emoji+' '+t;
                   }
 
-                  function coverDraw(ctx,img,x,y,w,h){
+                  function drawCover(ctx,img,x,y,w,h,zoom){
                     var iw=img.naturalWidth||img.width, ih=img.naturalHeight||img.height;
-                    var s=Math.max(w/iw,h/ih), sw=w/s, sh=h/s;
+                    var z=zoom||1;
+                    var s=Math.max(w/iw,h/ih)*z;
+                    var sw=w/s, sh=h/s;
                     var sx=(iw-sw)/2, sy=(ih-sh)/2;
+                    sx=Math.max(0,Math.min(iw-sw,sx));
+                    sy=Math.max(0,Math.min(ih-sh,sy));
                     ctx.drawImage(img,sx,sy,sw,sh,x,y,w,h);
                   }
 
-                  function makeSplitVisual(img,kind){
-                    if(img.dataset.nabdEnhanced==='1')return;
-                    img.dataset.nabdEnhanced='1';
+                  function enhanceSingleImage(img,kind,section){
+                    if(img.dataset.nabdEnhancedV15==='1')return;
+                    img.dataset.nabdEnhancedV15='1';
+
                     var original=img.src;
                     var work=new Image();
                     work.onload=function(){
                       try{
                         var canvas=document.createElement('canvas');
-                        canvas.width=1600; canvas.height=900;
+                        canvas.width=1600;
+                        canvas.height=900;
                         var ctx=canvas.getContext('2d');
-                        ctx.fillStyle='#07151d'; ctx.fillRect(0,0,1600,900);
 
-                        if(kind.split){
-                          var cut=1010;
-                          ctx.save();
-                          ctx.beginPath();
-                          ctx.moveTo(0,0); ctx.lineTo(cut+120,0); ctx.lineTo(cut-70,900); ctx.lineTo(0,900); ctx.closePath();
-                          ctx.clip();
-                          ctx.filter='saturate(1.30) contrast(1.16) brightness(0.94)';
-                          coverDraw(ctx,work,0,0,1120,900);
-                          ctx.restore();
+                        ctx.fillStyle='#eef2f3';
+                        ctx.fillRect(0,0,1600,900);
 
-                          var grad=ctx.createLinearGradient(930,0,1600,900);
-                          grad.addColorStop(0,kind.color);
-                          grad.addColorStop(1,kind.dark);
-                          ctx.fillStyle=grad;
-                          ctx.beginPath();
-                          ctx.moveTo(cut+95,0); ctx.lineTo(1600,0); ctx.lineTo(1600,900); ctx.lineTo(cut-95,900); ctx.closePath();
-                          ctx.fill();
-
-                          var glow=ctx.createRadialGradient(1370,340,20,1370,340,430);
-                          glow.addColorStop(0,'rgba(255,255,255,.16)');
-                          glow.addColorStop(1,'rgba(255,255,255,0)');
-                          ctx.fillStyle=glow; ctx.fillRect(930,0,670,900);
-
-                          for(var i=0;i<16;i++){
-                            ctx.fillStyle='rgba(255,255,255,'+(0.025+(i%3)*0.01)+')';
-                            ctx.beginPath();
-                            ctx.arc(1080+(i*89)%500,80+(i*137)%740,8+(i%5)*7,0,Math.PI*2);
-                            ctx.fill();
-                          }
-
-                          ctx.direction='rtl';
-                          ctx.textAlign='center';
-                          ctx.fillStyle='#fff';
-                          ctx.font='900 118px sans-serif';
-                          ctx.fillText(kind.label,1325,430);
-                          ctx.fillStyle='rgba(255,255,255,.88)';
-                          ctx.font='700 34px sans-serif';
-                          ctx.fillText('نبض الخبر',1325,495);
-
-                          ctx.strokeStyle='rgba(255,255,255,.28)';
-                          ctx.lineWidth=4;
-                          ctx.beginPath(); ctx.moveTo(1125,535); ctx.lineTo(1525,535); ctx.stroke();
-                        } else {
-                          ctx.save();
-                          ctx.filter='saturate(1.22) contrast(1.12) brightness(0.96)';
-                          coverDraw(ctx,work,0,0,1600,900);
-                          ctx.restore();
-
-                          var shade=ctx.createLinearGradient(0,0,0,900);
-                          shade.addColorStop(0,'rgba(0,0,0,0)');
-                          shade.addColorStop(1,'rgba(0,0,0,.22)');
-                          ctx.fillStyle=shade; ctx.fillRect(0,0,1600,900);
+                        ctx.save();
+                        if(kind.map){
+                          // Keep one full-frame map. A mild centered zoom trims neighboring
+                          // countries/empty margins while preserving the complete Yemen outline.
+                          ctx.filter='saturate(1.08) contrast(1.05) brightness(1.01)';
+                          drawCover(ctx,work,0,0,1600,900,1.10);
+                        }else{
+                          // For all other news keep the generated visual as one uninterrupted image.
+                          ctx.filter='saturate(1.12) contrast(1.08) brightness(0.99)';
+                          drawCover(ctx,work,0,0,1600,900,1.00);
                         }
+                        ctx.restore();
 
-                        img.src=canvas.toDataURL('image/png',0.96);
+                        var data=canvas.toDataURL('image/png',0.97);
+                        img.src=data;
                         img.style.filter='none';
+                        img.style.objectFit='cover';
+
+                        if(section){
+                          var dl=section.querySelector('a[download]');
+                          if(dl)dl.href=data;
+                        }
                       }catch(e){
                         img.src=original;
                       }
@@ -247,19 +222,23 @@ public class MainActivity extends Activity {
                       if(tweetNode.innerText!==finalText)tweetNode.innerText=finalText;
 
                       var buttons=Array.from(article.querySelectorAll('button'));
-                      var copy=buttons.find(function(b){return (b.innerText||'').indexOf('نسخ التغريدة')>=0 || (b.innerText||'').indexOf('تم النسخ')>=0;});
-                      if(copy && copy.dataset.nabdCopyHook!=='1'){
-                        copy.dataset.nabdCopyHook='1';
+                      var copy=buttons.find(function(b){
+                        var tx=b.innerText||'';
+                        return tx.indexOf('نسخ التغريدة')>=0 || tx.indexOf('تم النسخ')>=0;
+                      });
+
+                      if(copy && copy.dataset.nabdCopyHookV15!=='1'){
+                        copy.dataset.nabdCopyHookV15='1';
                         copy.addEventListener('click',function(){
                           setTimeout(function(){
-                            try{navigator.clipboard.writeText(finalText);}catch(e){}
+                            try{navigator.clipboard.writeText((tweetNode.innerText||finalText).trim());}catch(e){}
                           },80);
                         });
                       }
 
                       var section=article.parentElement;
                       var img=section ? section.querySelector('img[src^="data:image/"]') : null;
-                      if(img)makeSplitVisual(img,kind);
+                      if(img)enhanceSingleImage(img,kind,section);
 
                       if(!copy)return;
                       var actions=copy.parentElement;
